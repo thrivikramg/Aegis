@@ -35,13 +35,47 @@ if "conversation_id" not in st.session_state:
 st.title("🛡️ AEGIS: AI-Enabled Guardrail Inspection System")
 st.markdown("Real-time Autonomous Red-Team Synthesis & AI Defense Evolution Framework")
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab_home, tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🏠 Home",
     "🎯 Interactive Sandbox", 
     "🕸️ Attack Topologies", 
     "📊 Target Vulnerability", 
     "⚔️ Autonomous Agents", 
     "📜 Threat Archives"
 ])
+
+with tab_home:
+    st.markdown("""
+    # Secure the Intelligence: Autonomous Guardrail Evaluation for LLMs
+    ## AEGIS – Autonomous Evaluation of Guardrails in Intelligent Systems
+    
+    AEGIS is a professional-grade AI security framework engineered to stress-test, analyze, and reinforce the safety boundaries of Large Language Models. By combining automated red-teaming with semantic memory and adaptive learning, AEGIS identifies vulnerabilities—such as prompt injections and jailbreaks—before they can be exploited in production environments.
+    
+    ### 🛡️ Why AI Security Matters
+    As Large Language Models move from experimental labs to core business infrastructure, they introduce a new class of non-deterministic vulnerabilities. Standard security protocols are insufficient for probabilistic systems that can be manipulated through natural language.
+    
+    *   **Prompt Injection:** External inputs overriding system instructions to hijack logic.
+    *   **Adversarial Jailbreaking:** Sophisticated payloads designed to bypass safety filters.
+    *   **Persona Hijacking:** Coercing models into unauthorized roles to violate policies.
+    *   **Static Defense Failure:** Legacy guardrails that fail to adapt to evolving attack strategies.
+    
+    ---
+    ### 🚀 Key Capabilities
+    *   **Autonomous Red-Teaming:** AI-driven generation of complex adversarial prompts.
+    *   **Live Attack Interception:** Real-time detection of jailbreak attempts using multi-layered filtering.
+    *   **Adaptive Defense Memory:** A semantic feedback loop that learns from every blocked attack.
+    *   **Multi-Model Benchmarking:** Comparative security evaluation across Gemini, LLaMA, and more.
+    *   **Behavioral Risk Scoring:** A dynamic 7-point risk equation evaluating intent and escalation.
+    
+    ---
+    ### 👨‍💻 Creator Information
+    **THRIVIKRAM G**  
+    Chief Architect & Security Researcher  
+    [Connect on LinkedIn](https://www.linkedin.com/in/thrivikramg)
+    """)
+    
+    if st.button("🚀 Explore the System"):
+        st.info("Navigate to the 'Interactive Sandbox' tab above to start evaluating payloads.")
 
 with tab1:
     st.header("1. Live Pipeline Evaluation (V5 Logic)")
