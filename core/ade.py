@@ -15,7 +15,7 @@ class AdaptiveDefenseEngine:
         if self.mongo_uri:
             try:
                 self.client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=2000)
-                self.db = self.client["sentinelllm"]
+                self.db = self.client["aegis"]
                 self.collection = self.db["attack_memory"]
                 # Quick test
                 self.client.admin.command('ping')

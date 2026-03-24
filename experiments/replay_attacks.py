@@ -9,14 +9,14 @@ from llm.model_interface import LLMInterface
 from core.database import Database
 
 class ReplayTester:
-    """Script identifying zero-day historical bypasses and routing them to re-test the updated SentinelLLM."""
+    """Script identifying zero-day historical bypasses and routing them to re-test the updated Aegis."""
     def __init__(self):
         self.manager = GuardrailManager()
         self.llm = LLMInterface()
         self.db = Database()
 
     def run_replay(self, model="llama-3.1-8b-instant"):
-        print("[STARTING] SentinelLLM V3 Adaptive Defense Replay Tester...")
+        print("[STARTING] Aegis V5 Adaptive Defense Replay Tester...")
         if not self.db.enabled:
             print("Database not enabled. Cannot execute deep-memory replays.")
             return

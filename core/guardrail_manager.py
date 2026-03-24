@@ -175,24 +175,28 @@ class GuardrailManager:
 
         # V4 Behavior ML Detection Model
         behavior_prob = self.behavior_model.predict(prompt, embedding, ade_res["similarity"])
+        
+        # Attack Family Risk (V5 Heuristic metric)
+        # Inferred natively combining classification severity with known behavior model probabilities globally
+        attack_family_risk = min(1.0, class_severity * 0.5 + behavior_prob * 0.5)
 
-        # V4 Dynamic Risk Scoring System Execution
-        # 0.30(semantic) + 0.20(guardrail) + 0.20(judge) + 0.15(behavior_prob) + 0.10(severity) + 0.05(conversation)
+        # V5 Dynamic Risk Scoring System Execution
+        # 0.25(sem) + 0.20(guard) + 0.20(judge) + 0.15(behave) + 0.10(conv) + 0.10(family)
         risk_score = (
-            (0.30 * ade_res["similarity"]) + 
+            (0.25 * ade_res["similarity"]) + 
             (0.20 * guardrail_weight) + 
             (0.20 * judge_score) + 
             (0.15 * behavior_prob) + 
-            (0.10 * class_severity) + 
-            (0.05 * conv_risk)
+            (0.10 * conv_risk) +
+            (0.10 * attack_family_risk)
         )
         record["risk_score"] = risk_score
         
         if risk_score > 0.8 and not record["blocked"]:
             record["blocked"] = True
-            record["guardrail_name"] = "V4_RiskScoringSystem"
-            record["reason"] = f"Complex Aggregated Risk Score ({risk_score:.2f}) natively exceeded absolute boundary limit."
-            record["final_response"] = "[BLOCKED BY V4_RiskScoringSystem]"
+            record["guardrail_name"] = "V5_RiskScoringSystem"
+            record["reason"] = f"V5 Aggregated Risk Score ({risk_score:.2f}) natively exceeded absolute boundary limit."
+            record["final_response"] = "[BLOCKED BY V5_RiskScoringSystem]"
             
         # Target Model Generation
         if not record["blocked"]:

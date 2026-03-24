@@ -16,7 +16,7 @@ class ThreatFeedGenerator:
         if not self.db or not self.db.enabled: return
         os.makedirs(output_dir, exist_ok=True)
         
-        print(f"[Intelligence Aggregator] Compiling Unified V4 SentinelLLM Executive Assessment...")
+        print(f"[Intelligence Aggregator] Compiling Unified V5 Aegis Executive Assessment...")
         
         total_attacks = self.db.attacks.count_documents({})
         bypasses = self.db.attack_outcomes.count_documents({"success": True})
@@ -46,7 +46,7 @@ class ThreatFeedGenerator:
         # Universal JSON Export
         report = {
             "report_date": datetime.now().isoformat(),
-            "title": "SentinelLLM Weekly AI Threat Intelligence Report",
+            "title": "Aegis Weekly AI Threat Intelligence Report",
             "global_telemetry": {
                 "total_attacks_logged": total_attacks,
                 "zero_day_bypasses": bypasses

@@ -16,7 +16,7 @@ class Database:
     def _init_db(self):
         load_dotenv()
         self.mongo_uri = os.getenv("MONGODB_URI")
-        self.db_name = "sentinelllm_db"
+        self.db_name = "aegis_db"
         self.enabled = False
         
         if self.mongo_uri:
@@ -41,6 +41,13 @@ class Database:
                 # Phase 4 (V4) Collections 
                 self.conversation_memory = self.db["conversation_memory"]
                 self.threat_clusters = self.db["threat_clusters"]
+                
+                # Phase 5 (V5) Autonomous Collections
+                self.generated_attacks = self.db["generated_attacks"]
+                self.attack_simulation_results = self.db["attack_simulation_results"]
+                self.model_security_scores = self.db["model_security_scores"]
+                self.stress_test_results = self.db["stress_test_results"]
+                self.defense_rules = self.db["defense_rules"]
                 
                 self.client.admin.command('ping')
                 self.enabled = True

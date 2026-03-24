@@ -5,7 +5,7 @@ from llm.model_interface import LLMInterface
 import uvicorn
 import os
 
-app = FastAPI(title="SentinelLLM API Server", version="2.0")
+app = FastAPI(title="AEGIS: AI-Enabled Guardrail Inspection System", version="2.0")
 
 # Pre-initialized models
 manager = GuardrailManager()

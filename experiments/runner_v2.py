@@ -32,7 +32,7 @@ class BenchmarkRunner:
         with open(self.dataset_path, 'r') as f:
             attacks = json.load(f)
 
-        print("[STARTING] SentinelLLM V3 Multi-Model Benchmark suite...")
+        print("[STARTING] Aegis V5 Multi-Model Benchmark suite...")
         for category, prompts in attacks.items():
             for target_model in self.target_models:
                 print(f"\nEvaluating Category: [{category.upper()}] against LLM Target: [{target_model}]")
