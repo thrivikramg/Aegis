@@ -4,70 +4,55 @@ import matplotlib.pyplot as plt
 import sys
 import os
 
-# Add parent directory to path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from llm.model_interface import LLMInterface
 from redteam.attack_generator import AttackGenerator
-from guardrails.prompt_filter import PromptFilter
-from guardrails.output_filter import OutputFilter
-from evaluation.metrics import MetricsEngine
 from core.guardrail_manager import GuardrailManager
+from core.database import Database
 
-CSV_V1 = "experiments/results.csv"
-CSV_V2 = "experiments/results_v2.csv"
-METRIC_ASR = 'Attack Success Rate'
+st.set_page_config(page_title="SentinelLLM V3 Console", layout="wide")
 
-st.set_page_config(page_title="SentinelLLM Security Console", layout="wide")
-
-# Persistent Models (Caching disabled temporarily to ensure new methods are loaded)
+@st.cache_resource
 def load_models():
     return {
         "llm": LLMInterface(),
         "attack": AttackGenerator(),
-        "prompt_filter": PromptFilter(),
-        "output_filter": OutputFilter(),
-        "manager": GuardrailManager()
+        "manager": GuardrailManager(),
+        "db": Database()
     }
 
 models = load_models()
+db = models["db"]
 
-st.title("🛡️ SentinelLLM Security Console")
-st.markdown("Automated Red-Team and Guardrail Defense Framework")
+st.title("🛡️ SentinelLLM V3 Security Console")
+st.markdown("Autonomous Self-Learning Red-Team Cloud Framework")
 
-tab1, tab2, tab3 = st.tabs(["🎯 Prompt Attack Tester", "📊 Attack Analytics", "📜 Attack Logs"])
+tab1, tab2, tab3 = st.tabs(["🎯 Live Exploit Tester", "📊 Global Cloud Analytics", "📜 Explainable Logs"])
 
 with tab1:
-    st.header("Section 1: Prompt Attack Tester")
+    st.header("Section 1: Live Interactive Exploitation")
     col1, col2 = st.columns([2, 1])
     
     with col2:
-        # Dynamic categories from the attack generator seeds
         categories = list(models['attack'].seeds.keys())
         attack_type = st.selectbox("Select Attack Category", categories)
         if st.button("Generate Base Prompt"):
             with st.spinner("Fetching seed attack..."):
                 base_prompts = models['attack'].get_attack_prompts(attack_type, count=1)
                 st.session_state.prompt_input = base_prompts[0]
-                st.session_state.base_prompt = base_prompts[0]
-        
-        # New "Mutate" button as requested
+                
         if st.session_state.get('prompt_input'):
             if st.button("🛡️ Mutate current prompt"):
-                with st.spinner("Generating single high-fidelity mutation..."):
+                with st.spinner("Executing dynamic payload mutation via Groq..."):
                     mutated = models['attack'].mutate_prompt(st.session_state.prompt_input)
                     st.session_state.prompt_input = mutated
                     st.rerun()
 
-    # Comparative View: Show Original if it exists
-    if 'base_prompt' in st.session_state:
-        st.info(f"**Original Research Baseline:**  \n{st.session_state.base_prompt}")
-
-    prompt_input = st.text_area("Final Attack Prompt (Edit if needed)", value=st.session_state.get('prompt_input', ""), height=150)
+    prompt_input = st.text_area("Final Adversarial Payload", value=st.session_state.get('prompt_input', ""), height=150)
     
-    if st.button("Run Attack"):
-        with st.spinner("Processing..."):
-            # Use the unified Manager pipeline to handle logging and guardrails in one go
+    if st.button("Execute Against Defense Grid"):
+        with st.spinner("Processing through V3 Pipeline..."):
             res = models['manager'].run_full_pipeline(
                 prompt=prompt_input,
                 llm_interface=models['llm'],
@@ -75,133 +60,97 @@ with tab1:
                 attack_type=attack_type
             )
             
-            st.subheader("High-Fidelity Results")
+            st.subheader("Dynamic Security Metrics")
             c1, c2, c3 = st.columns(3)
-            c1.metric("Latency", f"{res['response_time']:.2f}s")
-            c2.metric("Result", "BLOCKED" if res['blocked'] else "ALLOWED")
-            c3.metric("Guardrail", res['guardrail_name'] or "None")
+            c1.metric("System Latency", f"{res['response_time']:.2f}s")
+            c2.metric("Final Posture", "BLOCKED" if res['blocked'] else "ALLOWED (Vuln)")
+            c3.metric("Highest Trigger", res['guardrail_name'] or "None")
             
             r1, r2, r3 = st.columns(3)
-            r1.metric("Input Risk Score", f"{res['input_risk']:.1f}%")
-            r2.metric("Output Risk Score", f"{res['output_risk']:.1f}%")
-            r3.metric("Discovery", "Dynamic" if res['guardrail_name'] else "Neutral")
+            r1.metric("Calculated Risk Score", f"{res['risk_score']:.2f}")
+            r2.metric("Semantic Match Index", f"{res.get('ade_similarity', 0):.2f}")
+            r3.metric("LLM Inferred Class", res['attack_type'])
             
-            st.write("**Final Response (after filtering):**")
+            st.write("**Final Intercepted Interaction:**")
             if res['blocked']:
                 st.error(res['final_response'])
-                st.info(f"**Security Reason:** {res['reason']}")
+                st.info(f"**Action Logic:** {res.get('reason', 'Security Policy Violation')}")
             else:
-                st.success(res['final_response'])
-                
-            st.toast("Attack logged to research results!", icon="🛡️")
+                st.warning(res['final_response'])
 
 with tab2:
-    st.header("Section 2: Dynamic Attack Analytics")
+    st.header("Section 2: Multi-Model V3 Analytics")
     
-    # Version selection with preference for V2
-    csv_path = CSV_V2 if os.path.exists(CSV_V2) else CSV_V1
-    
-    if os.path.exists(csv_path):
-        df = pd.read_csv(csv_path)
-        
-        # Action Bar
-        c1, c2 = st.columns([3, 1])
-        with c1:
-            st.info(f"Analyzing and visualizing data from: `{csv_path}`")
-        with c2:
-            if st.button("🔄 Trigger V2 Benchmark"):
-                with st.spinner("Running automated red-team suite..."):
-                    import subprocess
-                    subprocess.run(["python", "experiments/runner_v2.py"])
-                    st.rerun()
-
-        # Dynamic Metrics Calculation
-        metrics = MetricsEngine.calculate_metrics(df)
-        
-        st.subheader("System Performance Metrics")
-        cols = st.columns(len(metrics))
-        for i, (k, v) in enumerate(metrics.items()):
-            cols[i].metric(k, f"{v:.1f}%" if "%" in k or "Rate" in k else v)
-            
-        st.subheader("Attack Category Breakdown")
-        agg_df = MetricsEngine.aggregate_by_category(df)
-        st.dataframe(agg_df, use_container_width=True)
-        
-        st.subheader("Visual Analytics")
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-        
-        # 1. Block Distribution (Dynamic column detection)
-        blocked_col = 'blocked' if 'blocked' in df.columns else 'prompt_blocked' # fallback
-        if blocked_col in df.columns:
-            blocked_count = df[blocked_col].sum()
-            allowed_count = len(df) - blocked_count
-            ax1.pie([blocked_count, allowed_count], labels=['Threats Blocked', 'Allowed'], 
-                   autopct='%1.1f%%', colors=['#ff4b4b', '#1f77b4'], startangle=140, explode=(0.1, 0))
-            ax1.set_title("Detection Distribution")
-        
-        # 2. Attack Success Rate by Category
-        if METRIC_ASR in agg_df.columns:
-            # Sort for better visualization
-            agg_df = agg_df.sort_values(by=METRIC_ASR, ascending=False)
-            ax2.bar(agg_df['Attack Type'], agg_df[METRIC_ASR], color='#ffa500')
-            ax2.set_title("Vulnerability Score by Category")
-            ax2.set_ylabel("Success Rate %")
-            plt.xticks(rotation=45)
-        
-        st.pyplot(fig)
-
-        # ====== Adaptive Defense Analytics ======
-        st.markdown("---")
-        st.header("🧠 Adaptive Defense Analytics")
-        if "ade_similarity" in df.columns:
-            c_ade1, c_ade2 = st.columns(2)
-            sim_hits = len(df[df['ade_similarity'] >= 0.82])
-            c_ade1.metric("Similarity Detection Hits", sim_hits)
-            
-            ade_blocked = len(df[df['guardrail_name'] == 'AdaptiveDefenseEngine'])
-            total_blocked = len(df[df['blocked'] == True])
-            improvement = (ade_blocked / max(1, total_blocked)) * 100
-            c_ade2.metric("Block Rate Improvement (via ADE)", f"{improvement:.1f}%")
-            
-            st.subheader("Discovered Attack Clusters")
-            ade_stats = models['manager'].ade.cluster_attacks()
-            st.metric("Total Attack Clusters", ade_stats["clusters"])
-            
-            if ade_stats["patterns"]:
-                st.write("**Most Common Jailbreak Patterns:**")
-                for pat in ade_stats["patterns"][:5]:
-                    with st.expander(f"Cluster {pat['cluster_id']} (Size: {pat['size']})"):
-                        for p in pat["sample_prompts"]:
-                            st.code(p, language="text")
-        else:
-            st.info("Run new V2 attacks to generate Adaptive Defense metrics.")
+    if not db.enabled:
+        st.error("No remote connection established. Cannot pull metrics. Double check your `.env`.")
     else:
-        st.warning("No experiment data found. Use the button to generate logs.")
-        if st.button("Generate Initial Benchmark Data"):
-            import subprocess
-            subprocess.run(["python", "experiments/runner_v2.py"])
-            st.rerun()
+        # Volumetrics
+        total_attacks = db.attacks.count_documents({})
+        st.metric("Total Exploits Evaluated", total_attacks)
+        
+        if total_attacks > 0:
+            c1, c2 = st.columns(2)
+            
+            adaptive_blocks = db.guardrail_results.count_documents({"similarity_block": True})
+            c1.metric("Exploits Captured by Adaptive Memory", adaptive_blocks)
+            
+            unique_clusters = len(db.attacks.distinct("cluster_id"))
+            c2.metric("Emergent Zero-Day Clusters", max(0, unique_clusters - 1)) # Ignore None/-1
+            
+            # Classification Volumes
+            st.subheader("Continuous Threat Classification Matrix")
+            pipeline = [{"$group": {"_id": "$attack_type", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}]
+            types = list(db.attacks.aggregate(pipeline))
+            type_df = pd.DataFrame(types)
+            if not type_df.empty:
+                type_df.columns = ["Attack Vector Signature", "Volume"]
+                st.bar_chart(type_df.set_index("Attack Vector Signature"))
+            
+            # Risk Distributions
+            st.subheader("Holistic Risk Threat Distribution")
+            cursor = db.attacks.find({}, {"risk_score": 1, "_id": 0})
+            risks = [d.get("risk_score", 0) for d in cursor]
+            fig, ax = plt.subplots(figsize=(6, 3))
+            ax.hist(risks, bins=25, color='darkorange', edgecolor='black')
+            st.pyplot(fig)
+            
+            # Target Breakdowns
+            st.subheader("Federated Multi-Model Security Exposure")
+            # Count bypasses grouped by evaluating model
+            pipeline_vuln = [
+                {"$match": {"success": True}},
+                {"$lookup": {"from": "model_responses", "localField": "attack_id", "foreignField": "attack_id", "as": "resp"}},
+                {"$unwind": "$resp"},
+                {"$group": {"_id": "$resp.model_name", "bypasses": {"$sum": 1}}}
+            ]
+            vulns = list(db.attack_outcomes.aggregate(pipeline_vuln))
+            if vulns:
+                v_df = pd.DataFrame(vulns)
+                v_df.columns = ["Target Execution Model", "Successful Defense Bypasses"]
+                st.dataframe(v_df, use_container_width=True)
+            else:
+                st.info("Immaculate telemetry. Current frameworks exhibit absolute resistance.")
+                
+            c_btn = st.columns([1,1])
+            if c_btn[0].button("Run V3 Background Analysis Clustering"):
+                import subprocess
+                subprocess.Popen(["python", "analysis/cluster_attacks.py"])
+                st.toast("Clustering script dispatched to background.")
+            if c_btn[1].button("Launch Model Retrospective Replay"):
+                import subprocess
+                subprocess.Popen(["python", "experiments/replay_attacks.py"])
+                st.toast("Replay tester deployed against the historical memory.")
 
 with tab3:
-    st.header("Section 3: Attack Logs")
-    if os.path.exists(CSV_V2) or os.path.exists(CSV_V1):
-        # Version selection or fallback
-        csv_path = CSV_V2 if os.path.exists(CSV_V2) else CSV_V1
-        df = pd.read_csv(csv_path)
-        
-        st.subheader("High-Fidelity Research Logs")
-        display_cols = ['timestamp', 'attack_type', 'prompt', 'blocked', 'guardrail_name', 'response_time', 'final_response']
-        # Filter to columns that exist in the CSV
-        available_display_cols = [c for c in display_cols if c in df.columns]
-        st.data_editor(df[available_display_cols], use_container_width=True)
-        
-        st.subheader("Security Decision Breakdown")
-        if 'guardrail_name' in df.columns:
-            trigger_counts = df['guardrail_name'].value_counts()
-            st.bar_chart(trigger_counts)
-        
-        st.subheader("Performance Latency (sec)")
-        if 'response_time' in df.columns:
-            st.line_chart(df['response_time'])
-    else:
-        st.info("Run experiments/runner_v2.py to see V2 logs.")
+    st.header("Section 3: Explainable Decision Engine Logs")
+    if db.enabled:
+        logs = list(db.defense_logs.find().sort("timestamp", -1).limit(40))
+        if logs:
+            for l in logs:
+                with st.expander(f"Intercepted: {l.get('guardrail_triggered')} at {l.get('timestamp')}"):
+                    st.write(f"**Adversarial Prompting:** {l.get('prompt')}")
+                    st.write(f"**Semantic Distance to Memory:** {l.get('similarity_score'):.2f}")
+                    st.write(f"**Total Algorithm Risk Probability:** {l.get('risk_score'):.2f}")
+                    st.warning(f"**Architectural Reasoning:** {l.get('explanation_text')}")
+        else:
+            st.write("Zero mitigation alerts isolated. Defensive grid idle.")

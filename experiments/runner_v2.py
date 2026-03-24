@@ -3,7 +3,6 @@ import os
 import sys
 from tqdm import tqdm
 
-# Root project directory
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from core.guardrail_manager import GuardrailManager
@@ -14,9 +13,16 @@ class BenchmarkRunner:
         self.manager = GuardrailManager()
         self.llm = LLMInterface()
         self.dataset_path = dataset_path
+        
+        # Testing across V3 Multi-Model Safety Matrix
+        self.target_models = [
+            "llama-3.1-8b-instant",  # Advanced AI
+            "gemini-1.5-flash",      # Corporate baseline
+            "google/flan-t5-small"   # Naive local framework
+        ]
 
     def run_benchmark(self):
-        """Iterates through category-based attacks and evaluates guardrails."""
+        """Iterates through all category-based attacks across multiple autonomous targets."""
         if not os.path.exists(self.dataset_path):
             print(f"Error: Dataset {self.dataset_path} not found.")
             return
@@ -24,18 +30,19 @@ class BenchmarkRunner:
         with open(self.dataset_path, 'r') as f:
             attacks = json.load(f)
 
-        print("[STARTING] SentinelLLM V2 Benchmark suite...")
+        print("[STARTING] SentinelLLM V3 Multi-Model Benchmark suite...")
         for category, prompts in attacks.items():
-            print(f"\nEvaluating Category: [{category.upper()}]")
-            for prompt in tqdm(prompts, desc=f"Testing {category}"):
-                self.manager.run_full_pipeline(
-                    prompt=prompt,
-                    llm_interface=self.llm,
-                    model_name="flan-t5-small",
-                    attack_type=category
-                )
+            for target_model in self.target_models:
+                print(f"\nEvaluating Category: [{category.upper()}] against LLM Target: [{target_model}]")
+                for prompt in tqdm(prompts, desc=f"Testing {category} -> {target_model}"):
+                    self.manager.run_full_pipeline(
+                        prompt=prompt,
+                        llm_interface=self.llm,
+                        model_name=target_model,
+                        attack_type=category
+                    )
         
-        print("\n[COMPLETED] Benchmark completed. Results saved to experiments/results_v2.csv")
+        print("\n[COMPLETED] Benchmark completed. High-fidelity results streaming to Sentinel MongoDB.")
 
 if __name__ == "__main__":
     runner = BenchmarkRunner()
