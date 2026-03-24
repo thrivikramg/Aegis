@@ -15,6 +15,8 @@ from guardrails.llama_firewall import LlamaFirewall
 from guardrails.groq_judge import GroqJudgeGuardrail
 from guardrails.adaptive_defense import AdaptiveDefenseGuardrail
 from analysis.attack_classifier import AttackClassifier
+from analysis.conversation_analyzer import ConversationAnalyzer
+from analysis.attack_behavior_model import AttackBehaviorModel
 from attacks.mutation_engine import MutationEngine
 from core.database import Database
 
@@ -38,12 +40,26 @@ class GuardrailManager:
         self.mutation_engine = MutationEngine()
         self.llm_judge = GroqJudgeGuardrail()
         self.db = Database()
+        
+        # V4 Deep Analysis Tracking Modules
+        self.conv_analyzer = ConversationAnalyzer(self.db)
+        self.behavior_model = AttackBehaviorModel(self.db)
+        # Force a background model synchronization/train if needed
+        if self.db.enabled and self.behavior_model.model is None:
+            import threading
+            threading.Thread(target=self.behavior_model.train, daemon=True).start()
 
     def log_result(self, record, output_path="experiments/results_v2.csv"):
         """Logs high-fidelity metrics for research analysis to flatfile."""
-        df = pd.DataFrame([record])
-        file_exists = os.path.isfile(output_path)
-        df.to_csv(output_path, mode='a', header=not file_exists, index=False)
+        try:
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+            final_path = os.path.join(base_dir, output_path) if not os.path.isabs(output_path) else output_path
+            os.makedirs(os.path.dirname(final_path), exist_ok=True)
+            df = pd.DataFrame([record])
+            file_exists = os.path.isfile(final_path)
+            df.to_csv(final_path, mode='a', header=not file_exists, index=False)
+        except Exception as e:
+            print(f"[GuardrailManager] CSV Logging Backup Warning: {e}")
 
     def _run_input_phase(self, prompt, record):
         for g in self.input_guards:
@@ -86,9 +102,9 @@ class GuardrailManager:
                 return True
         return False
 
-    def run_full_pipeline(self, prompt, llm_interface, model_name="local-llm", attack_type="unknown"):
+    def run_full_pipeline(self, prompt, llm_interface, model_name="local-llm", attack_type="unknown", conversation_id=None):
         """
-        Executes the self-learning guardrail pipeline with dynamic risk scoring.
+        Executes the self-learning guardrail pipeline with V4 6-layer dynamic risk scoring.
         """
         attack_id = str(uuid.uuid4())
         start_time = time.time()
@@ -98,6 +114,10 @@ class GuardrailManager:
         
         # Deduplication Check
         dup_id = self.db.check_duplicate(embedding, threshold=0.95)
+        
+        # V4 Multi-Turn Conversational Escalation State check
+        conv_res = self.conv_analyzer.analyze_turn(conversation_id, prompt)
+        conv_risk = conv_res["conversation_risk_score"]
         
         # Attack Classification
         class_res = self.classifier.classify(prompt)
@@ -153,16 +173,26 @@ class GuardrailManager:
                         "input_risk": judge_res["risk_score"]
                     })
 
-        # Dynamic Risk Scoring System Execution
-        # risk_score = 0.4 * similarity + 0.3 * guardrail triggers + 0.2 * judge_model_score + 0.1 * severity
-        risk_score = (0.4 * ade_res["similarity"]) + (0.3 * guardrail_weight) + (0.2 * judge_score) + (0.1 * class_severity)
+        # V4 Behavior ML Detection Model
+        behavior_prob = self.behavior_model.predict(prompt, embedding, ade_res["similarity"])
+
+        # V4 Dynamic Risk Scoring System Execution
+        # 0.30(semantic) + 0.20(guardrail) + 0.20(judge) + 0.15(behavior_prob) + 0.10(severity) + 0.05(conversation)
+        risk_score = (
+            (0.30 * ade_res["similarity"]) + 
+            (0.20 * guardrail_weight) + 
+            (0.20 * judge_score) + 
+            (0.15 * behavior_prob) + 
+            (0.10 * class_severity) + 
+            (0.05 * conv_risk)
+        )
         record["risk_score"] = risk_score
         
         if risk_score > 0.8 and not record["blocked"]:
             record["blocked"] = True
-            record["guardrail_name"] = "RiskScoringSystem"
-            record["reason"] = f"Aggregated Risk Score ({risk_score:.2f}) exceeded threshold."
-            record["final_response"] = "[BLOCKED BY RiskScoringSystem]"
+            record["guardrail_name"] = "V4_RiskScoringSystem"
+            record["reason"] = f"Complex Aggregated Risk Score ({risk_score:.2f}) natively exceeded absolute boundary limit."
+            record["final_response"] = "[BLOCKED BY V4_RiskScoringSystem]"
             
         # Target Model Generation
         if not record["blocked"]:
@@ -203,6 +233,10 @@ class GuardrailManager:
                     "confidence": 1.0, # Known vulnerable vector
                     "created_from_attack": attack_id
                 })
+                
+                # Immediately retrain ML behavior algorithms asynchronously to adapt to the zero-day
+                import threading
+                threading.Thread(target=self.behavior_model.train, daemon=True).start()
 
         record["response_time"] = time.time() - start_time
         
@@ -253,8 +287,20 @@ class GuardrailManager:
                 triggered=record["guardrail_name"],
                 similarity=ade_res["similarity"],
                 risk=risk_score,
-                explanation=record.get("reason", "Automatically blocked.")
+                explanation=record.get("reason", "Automatically isolated and quarantined.")
             )
+            
+        if conversation_id:
+            # Sync the context graph natively before progressing 
+            self.db.log_conversation_turn({
+                "conversation_id": conversation_id,
+                "timestamp": datetime.now(),
+                "user_prompt": prompt,
+                "model_response": record["final_response"],
+                "embedding_vector": embedding,
+                "attack_probability": behavior_prob,
+                "risk_score": risk_score
+            })
         # ------------------------
         
         self.log_result(record)

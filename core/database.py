@@ -38,6 +38,10 @@ class Database:
                 self.defense_evaluation = self.db["defense_evaluation"]
                 self.defense_logs = self.db["defense_logs"]
                 
+                # Phase 4 (V4) Collections 
+                self.conversation_memory = self.db["conversation_memory"]
+                self.threat_clusters = self.db["threat_clusters"]
+                
                 self.client.admin.command('ping')
                 self.enabled = True
                 print("[Database] V3 Async Architecture Initialized.")
@@ -81,6 +85,14 @@ class Database:
         if not self.enabled: return
         self._async_run(self.security_metrics.update_one, doc_query, {"$set": update_fields}, upsert=True)
 
+    def log_conversation_turn(self, doc: dict):
+        if not self.enabled: return
+        self._async_run(self.conversation_memory.insert_one, doc)
+        
+    def log_threat_cluster(self, doc: dict):
+        if not self.enabled: return
+        self._async_run(self.threat_clusters.insert_one, doc)
+        
     def log_conversation_msg(self, conv_id, msg, risk):
         if not self.enabled or not conv_id: return
         self._async_run(self.conversations.update_one, 

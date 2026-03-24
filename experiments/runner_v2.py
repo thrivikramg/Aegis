@@ -12,7 +12,9 @@ class BenchmarkRunner:
     def __init__(self, dataset_path="attacks/jailbreak_prompts.json"):
         self.manager = GuardrailManager()
         self.llm = LLMInterface()
-        self.dataset_path = dataset_path
+        
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        self.dataset_path = os.path.join(base_dir, dataset_path) if not os.path.isabs(dataset_path) else dataset_path
         
         # Testing across V3 Multi-Model Safety Matrix
         self.target_models = [
