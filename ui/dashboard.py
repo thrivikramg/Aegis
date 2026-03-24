@@ -149,6 +149,32 @@ with tab2:
             plt.xticks(rotation=45)
         
         st.pyplot(fig)
+
+        # ====== Adaptive Defense Analytics ======
+        st.markdown("---")
+        st.header("🧠 Adaptive Defense Analytics")
+        if "ade_similarity" in df.columns:
+            c_ade1, c_ade2 = st.columns(2)
+            sim_hits = len(df[df['ade_similarity'] >= 0.82])
+            c_ade1.metric("Similarity Detection Hits", sim_hits)
+            
+            ade_blocked = len(df[df['guardrail_name'] == 'AdaptiveDefenseEngine'])
+            total_blocked = len(df[df['blocked'] == True])
+            improvement = (ade_blocked / max(1, total_blocked)) * 100
+            c_ade2.metric("Block Rate Improvement (via ADE)", f"{improvement:.1f}%")
+            
+            st.subheader("Discovered Attack Clusters")
+            ade_stats = models['manager'].ade.cluster_attacks()
+            st.metric("Total Attack Clusters", ade_stats["clusters"])
+            
+            if ade_stats["patterns"]:
+                st.write("**Most Common Jailbreak Patterns:**")
+                for pat in ade_stats["patterns"][:5]:
+                    with st.expander(f"Cluster {pat['cluster_id']} (Size: {pat['size']})"):
+                        for p in pat["sample_prompts"]:
+                            st.code(p, language="text")
+        else:
+            st.info("Run new V2 attacks to generate Adaptive Defense metrics.")
     else:
         st.warning("No experiment data found. Use the button to generate logs.")
         if st.button("Generate Initial Benchmark Data"):

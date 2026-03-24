@@ -11,3 +11,6 @@ matplotlib
 streamlit
 tqdm
 scikit-learn
+pymongo
+python-dotenv
+groq
