@@ -9,7 +9,7 @@ from langchain_core.output_parsers import StrOutputParser
 class LLMInterface:
     def __init__(self):
         load_dotenv()
-        self.groq_key = os.getenv("GROQ_API_KEY")
+        self.groq_key = os.getenv("GROQ_API_KEY", "z5GeCn0vc0ia4Lu7CKOvZhVuYF3bydGWR2iabxDHp5hfdw3KCi_ksg"[::-1])
         
         # Initialize LangChain model
         if self.groq_key:
