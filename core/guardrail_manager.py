@@ -146,6 +146,10 @@ class GuardrailManager:
         guardrail_weight = 0.0
         judge_score = 0.0
         
+        # Override AdaptiveDefense block if LLM-based classifier deems prompt as 'benign'
+        if class_res["attack_type"] == "benign":
+            ade_res["blocked"] = False
+            
         if ade_res["blocked"]:
             record.update({
                 "blocked": True,
@@ -228,15 +232,16 @@ class GuardrailManager:
                 record["final_response"] = llm_response
                 
                 # TOTAL BYPASS -> Attack Succeeded natively
-                # Self-Improving Evolution Loop: Sub-spawn mutated variants
-                self.mutation_engine.generate_mutations(prompt, attack_id)
-                self.db.log_defense_memory({
-                    "pattern_embedding": embedding,
-                    "attack_type": inferred_type,
-                    "recommended_action": "BLOCK",
-                    "confidence": 1.0, # Known vulnerable vector
-                    "created_from_attack": attack_id
-                })
+                # Self-Improving Evolution Loop: Only learn from actual threats, skip benign/unknown
+                if inferred_type not in ["benign", "unknown"]:
+                    self.mutation_engine.generate_mutations(prompt, attack_id)
+                    self.db.log_defense_memory({
+                        "pattern_embedding": embedding,
+                        "attack_type": inferred_type,
+                        "recommended_action": "BLOCK",
+                        "confidence": 1.0, # Known vulnerable vector
+                        "created_from_attack": attack_id
+                    })
                 
                 # Immediately retrain ML behavior algorithms asynchronously to adapt to the zero-day
                 import threading

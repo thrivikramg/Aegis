@@ -5,7 +5,7 @@ from sentence_transformers import SentenceTransformer
 class AdaptiveDefenseGuardrail:
     _embedding_model = None
 
-    def __init__(self, similarity_threshold=0.85):
+    def __init__(self, similarity_threshold=0.97):
         self.db = Database()
         self.similarity_threshold = similarity_threshold
         self.name = "AdaptiveDefense"

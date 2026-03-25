@@ -14,3 +14,6 @@ scikit-learn
 pymongo
 python-dotenv
 groq
+langchain
+langchain-groq
+langchain-core
